@@ -1,5 +1,4 @@
 import type { Edge, EdgeTypes } from "reactflow";
-import { DefaultEdge } from "./DefaultEdge";
 
 export enum MarkerType {
   Arrow = 'arrow',

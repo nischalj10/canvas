@@ -1,6 +1,6 @@
 import type { OnConnect } from "reactflow";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -8,24 +8,72 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
+  ReactFlowProvider,
+  ReactFlowInstance,
 } from "reactflow";
 
 import "reactflow/dist/style.css";
 
 import { initialNodes, nodeTypes } from "./nodes";
-import { initialEdges, edgeTypes } from "./edges";
+import { initialEdges, edgeTypes, MarkerType } from "./edges";
+import Panel from "./panel/Panel";
 
-export enum MarkerType {
-  Arrow = 'arrow',
-  ArrowClosed = 'arrowclosed',
-}
+let id = 0;
+const getId = () => `dndnode_${id++}`;
 
 export default function App() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const reactFlowWrapper = useRef(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+
   const onConnect: OnConnect = useCallback(
     (connection) => setEdges((edges) => addEdge(connection, edges)),
     [setEdges]
+  );
+
+  const onDragOver = useCallback((event:any) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: any) => {
+      event.preventDefault();
+
+      if (!reactFlowInstance) {
+        console.error("ReactFlow instance is not initialized");
+        return;
+      }
+
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      // check if the dropped element is valid
+      if (typeof type === 'undefined' || !type) {
+        console.error("Node type invalid");
+        return;
+      }
+      
+      const position = reactFlowInstance?.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      if (!position) {
+        console.error("Failed to get node position");
+        return; // Exit if position is undefined
+      }
+
+      const newNode = {
+        id: getId(),
+        type,
+        position,
+        data: { label: `${type} node` },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance],
   );
 
   return (
@@ -34,26 +82,28 @@ export default function App() {
         BiteSpeed
       </div>
       <div className="flex flex-row w-full flex-grow h-full relative">
-        <ReactFlow
-          nodes={nodes}
-          nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
-          edges={edges}
-          edgeTypes={edgeTypes}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-          defaultEdgeOptions={{animated : false, markerEnd: {type: MarkerType.ArrowClosed}}}
-          className="w-4/5 h-full"
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
-        <div className="w-1/5 bg-gray-100 rounded-md mr-4 mb-4 flex flex-col items-center justify-center border-l-1 border-black">
-          <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">
-            Message Block
-          </button>
-        </div>
+        <ReactFlowProvider>
+          <div className="w-4/5 h-full" ref={reactFlowWrapper}>
+            <ReactFlow
+              nodes={nodes}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              edges={edges}
+              edgeTypes={edgeTypes}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onInit={setReactFlowInstance}
+              fitView
+              defaultEdgeOptions={{animated : false, markerEnd: {type: MarkerType.ArrowClosed}}}
+            >
+              <Background />
+              <Controls />
+            </ReactFlow>
+          </div>
+          <Panel/>
+        </ReactFlowProvider>
       </div>
     </div>
   );
