@@ -18,19 +18,29 @@ import { initialNodes, nodeTypes } from "./nodes";
 import { initialEdges, edgeTypes, MarkerType } from "./edges";
 import Panel from "./panel/Panel";
 
-let id = 0;
-const getId = () => `dndnode_${id++}`;
+let id = 3;
+const getId = () => `${++id}`;
 
 export default function App() {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [editMode, setEditMode]  = useState<boolean>(false);
 
-  const onConnect: OnConnect = useCallback(
-    (connection) => setEdges((edges) => addEdge(connection, edges)),
-    [setEdges]
-  );
+  const onConnect = useCallback((connection:any) => {
+    setEdges((currentEdges) => {
+      const { source } = connection;
+      const sourceAlreadyConnected = currentEdges.some(edge => 
+        edge.source === source
+      );
+      if (!sourceAlreadyConnected) {
+        return addEdge(connection, currentEdges);
+      } 
+      return currentEdges;
+    });
+  }, [setEdges]);
 
   const onDragOver = useCallback((event:any) => {
     event.preventDefault();
@@ -76,6 +86,20 @@ export default function App() {
     [reactFlowInstance],
   );
 
+  const onNodeClick = useCallback(( e:any, node:any) => {
+    setSelectedNode(node);
+    setEditMode(true);
+  }, []);
+
+  const handleUpdateNodeLabel = useCallback((nodeId:any, newLabel:any) => {
+    setNodes((nds) => nds.map((node) => {
+      if (node.id === nodeId) {
+        return { ...node, data: { ...node.data, label: newLabel } };
+      }
+      return node;
+    }));
+  }, [setNodes]);
+
   return (
     <div className="flex flex-col w-full h-full">
       <div className="w-full text-center p-2 z-1 h-4 font-medium">
@@ -96,13 +120,14 @@ export default function App() {
               onDragOver={onDragOver}
               onInit={setReactFlowInstance}
               fitView
+              onNodeClick={onNodeClick}
               defaultEdgeOptions={{animated : false, markerEnd: {type: MarkerType.ArrowClosed}}}
             >
               <Background />
               <Controls />
             </ReactFlow>
           </div>
-          <Panel/>
+          <Panel editMode={editMode} setEditMode={setEditMode} selectedNode={selectedNode} updateNodeLabel={handleUpdateNodeLabel}/>
         </ReactFlowProvider>
       </div>
     </div>

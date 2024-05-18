@@ -10,5 +10,5 @@ export const edgeTypes = {
 } satisfies EdgeTypes;
 
 export const initialEdges = [
-  { id: "a->b", source: "a", target: "b", animated: false, markerEnd: {type: MarkerType.ArrowClosed}},
+  { id: "1->2", source: "1", target: "2", animated: false, markerEnd: {type: MarkerType.ArrowClosed}},
 ] satisfies Edge[];
