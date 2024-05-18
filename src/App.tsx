@@ -78,7 +78,7 @@ export default function App() {
         id: getId(),
         type,
         position,
-        data: { label: `${type} node` },
+        data: { label: "New Text Message" },
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -127,7 +127,7 @@ export default function App() {
               <Controls />
             </ReactFlow>
           </div>
-          <Panel editMode={editMode} setEditMode={setEditMode} selectedNode={selectedNode} updateNodeLabel={handleUpdateNodeLabel}/>
+          <Panel editMode={editMode} setEditMode={setEditMode} selectedNode={selectedNode} updateNodeLabel={handleUpdateNodeLabel} nodes={nodes} edges={edges}/>
         </ReactFlowProvider>
       </div>
     </div>
